@@ -143,10 +143,10 @@ if [ ! -f "$CLAUDE_CONFIG" ]; then
 fi
 
 # Ensure mcpServers key exists (no-op if already present)
-plutil -insert mcpServers -json '{}' "$CLAUDE_CONFIG" 2>/dev/null || true
+plutil -insert mcpServers -json '{}' "$CLAUDE_CONFIG" >/dev/null 2>&1 || true
 
 # Remove existing lore entry if present (so -insert doesn't fail on duplicate)
-plutil -remove mcpServers.lore "$CLAUDE_CONFIG" 2>/dev/null || true
+plutil -remove mcpServers.lore "$CLAUDE_CONFIG" >/dev/null 2>&1 || true
 
 # Add lore entry
 plutil -insert mcpServers.lore -json "{

@@ -1,6 +1,6 @@
 # Lore
 
-An MCP server that gives agents structured access to your project's knowledge base — markdown docs, a knowledge graph, and reusable skills stored in your repo under `.lore/`.
+An MCP server that gives agents structured access to any project's knowledge base (markdown docs, a knowledge graph, and reusable skills stored in the project's repo under `.lore/`). This provides a shared, version-controlled knowledge base with no additional infrastructure required beyone this MCP server
 
 ## Install
 

@@ -5,7 +5,7 @@
 # Idempotent — safe to re-run. Does not clobber existing config or other
 # MCP servers in the Claude Desktop config.
 #
-# Dependencies: curl, osascript (both ship with macOS)
+# Dependencies: curl, osascript, plutil (all ship with macOS)
 set -euo pipefail
 
 REPO="bgood-upland/lore"
@@ -91,7 +91,7 @@ if [ -z "$DOWNLOAD_URL" ]; then
     echo "Available assets:"
     osascript -l JavaScript -e "
         var r = JSON.parse(\`$RELEASE_JSON\`);
-        (r.assets || []).forEach(function(a) { ObjC.import('stdlib'); $.puts('  ' + a.name); });
+        (r.assets || []).map(function(a) { return '  ' + a.name; }).join('\n');
     " 2>/dev/null || true
     exit 1
 fi
@@ -130,50 +130,32 @@ fi
 
 # ── Step 7: Patch Claude Desktop config ─────────────────────────────────────
 # Adds the "lore" MCP server entry without clobbering other servers.
-# Uses osascript (JXA) for JSON parsing — no Python dependency.
+# Uses plutil (ships with macOS) for JSON manipulation — no Python dependency.
 
 echo "Configuring Claude Desktop..."
 
 LAUNCHER_PATH="$DATA_DIR/bin/launch.sh"
 
-osascript -l JavaScript << JSEOF
-ObjC.import('Foundation');
+# Create the config file if it doesn't exist
+if [ ! -f "$CLAUDE_CONFIG" ]; then
+    mkdir -p "$(dirname "$CLAUDE_CONFIG")"
+    echo '{}' > "$CLAUDE_CONFIG"
+fi
 
-var configPath = "$CLAUDE_CONFIG";
-var launcherPath = "$LAUNCHER_PATH";
+# Ensure mcpServers key exists (no-op if already present)
+plutil -insert mcpServers -json '{}' "$CLAUDE_CONFIG" 2>/dev/null || true
 
-// Read existing config or start fresh
-var fm = $.NSFileManager.defaultManager;
-var config = {};
-if (fm.fileExistsAtPath(configPath)) {
-    var data = $.NSData.dataWithContentsOfFile(configPath);
-    if (data && data.length > 0) {
-        var str = $.NSString.alloc.initWithDataEncoding(data, $.NSUTF8StringEncoding).js;
-        try { config = JSON.parse(str); } catch(e) { config = {}; }
-    }
-}
+# Remove existing lore entry if present (so -insert doesn't fail on duplicate)
+plutil -remove mcpServers.lore "$CLAUDE_CONFIG" 2>/dev/null || true
 
-// Add/update lore entry — leaves all other mcpServers entries untouched
-if (!config.mcpServers) config.mcpServers = {};
-config.mcpServers.lore = {
-    command: launcherPath,
-    args: [],
-    env: { RUST_BACKTRACE: "1" }
-};
+# Add lore entry
+plutil -insert mcpServers.lore -json "{
+  \"command\": \"$LAUNCHER_PATH\",
+  \"args\": [],
+  \"env\": {\"RUST_BACKTRACE\": \"1\"}
+}" "$CLAUDE_CONFIG"
 
-// Write back
-var output = JSON.stringify(config, null, 2) + "\n";
-var nsStr = $.NSString.alloc.initWithUTF8String(output);
-
-// Ensure parent directory exists
-var parentDir = $(configPath).stringByDeletingLastPathComponent;
-fm.createDirectoryAtPathWithIntermediateDirectoriesAttributesError(
-    parentDir, true, $(), $()
-);
-
-nsStr.writeToFileAtomicallyEncodingError(configPath, true, $.NSUTF8StringEncoding, $());
-console.log("  Updated: " + configPath);
-JSEOF
+echo "  Updated: $CLAUDE_CONFIG"
 
 # ── Step 8: Check SSH for Autopilot mode ────────────────────────────────────
 

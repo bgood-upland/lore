@@ -143,10 +143,10 @@ if [ ! -f "$CLAUDE_CONFIG" ]; then
 fi
 
 # Ensure mcpServers key exists (no-op if already present)
-plutil -insert mcpServers -json '{}' "$CLAUDE_CONFIG" >/dev/null 2>&1 || true
+plutil -insert mcpServers -json '{}' "$CLAUDE_CONFIG" 2>/dev/null || true
 
 # Remove existing lore entry if present (so -insert doesn't fail on duplicate)
-plutil -remove mcpServers.lore "$CLAUDE_CONFIG" >/dev/null 2>&1 || true
+plutil -remove mcpServers.lore "$CLAUDE_CONFIG" 2>/dev/null || true
 
 # Add lore entry
 plutil -insert mcpServers.lore -json "{
@@ -157,7 +157,29 @@ plutil -insert mcpServers.lore -json "{
 
 echo "  Updated: $CLAUDE_CONFIG"
 
-# ── Step 8: Check SSH for Autopilot mode ────────────────────────────────────
+# ── Step 8: Add to PATH ─────────────────────────────────────────────────────
+# Adds ~/.lore/bin to PATH so users can run `lore cli` from any terminal.
+
+SHELL_RC=""
+case "$(basename "$SHELL")" in
+    zsh)  SHELL_RC="$HOME/.zshrc" ;;
+    bash) SHELL_RC="$HOME/.bash_profile" ;;
+esac
+
+if [ -n "$SHELL_RC" ]; then
+    PATH_LINE='export PATH="$HOME/.lore/bin:$PATH"'
+    if [ -f "$SHELL_RC" ] && grep -qF '.lore/bin' "$SHELL_RC"; then
+        echo "  PATH already configured in $SHELL_RC"
+    else
+        echo "" >> "$SHELL_RC"
+        echo "# Lore CLI" >> "$SHELL_RC"
+        echo "$PATH_LINE" >> "$SHELL_RC"
+        echo "  Added to PATH in $SHELL_RC"
+        echo "  Run 'source $SHELL_RC' or open a new terminal for this to take effect."
+    fi
+fi
+
+# ── Step 9: Check SSH for Autopilot mode ────────────────────────────────────
 
 if [ "$GIT_OK" = true ]; then
     echo ""
@@ -186,8 +208,13 @@ echo "  Version:         $LATEST_TAG"
 echo ""
 echo "  Next steps:"
 echo "    1. Restart Claude Desktop"
-echo "    2. Add a project:"
-echo "       $DATA_DIR/bin/lore cli"
+if [ -n "$SHELL_RC" ]; then
+    echo "    2. Open a new terminal window (or run: source $SHELL_RC)"
+else
+    echo "    2. Open a new terminal window"
+fi
+echo "    3. Add a project:"
+echo "       lore cli"
 echo "       > add-project my-project --root /path/to/repo"
 echo ""
 echo "  Updates are automatic on Claude Desktop restart."

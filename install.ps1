@@ -128,7 +128,21 @@ if ($config.mcpServers.PSObject.Properties["lore"]) {
 $config | ConvertTo-Json -Depth 10 | Set-Content $ClaudeConfig -Encoding UTF8
 Write-Host "  Updated: $ClaudeConfig"
 
-# ── Step 8: Check SSH for Autopilot mode ────────────────────────────────────
+# ── Step 8: Add to PATH ─────────────────────────────────────────────────────
+# Adds ~/.lore/bin to the user's PATH so they can run `lore cli` from any terminal.
+
+$LoreBinDir = "$DataDir\bin"
+$CurrentPath = [Environment]::GetEnvironmentVariable("PATH", "User")
+
+if ($CurrentPath -and $CurrentPath.Contains($LoreBinDir)) {
+    Write-Host "  PATH already configured."
+} else {
+    $NewPath = if ($CurrentPath) { "$LoreBinDir;$CurrentPath" } else { $LoreBinDir }
+    [Environment]::SetEnvironmentVariable("PATH", $NewPath, "User")
+    Write-Host "  Added to PATH. Open a new terminal for this to take effect."
+}
+
+# ── Step 9: Check SSH for Autopilot mode ────────────────────────────────────
 
 if ($GitOk) {
     Write-Host ""
@@ -164,8 +178,9 @@ Write-Host "  Version:         $LatestTag"
 Write-Host ""
 Write-Host "  Next steps:"
 Write-Host "    1. Restart Claude Desktop"
-Write-Host "    2. Add a project:"
-Write-Host "       $DataDir\bin\lore.exe cli"
+Write-Host "    2. Open a new terminal window"
+Write-Host "    3. Add a project:"
+Write-Host "       lore cli"
 Write-Host "       > add-project my-project --root C:\path\to\repo"
 Write-Host ""
 Write-Host "  Updates are automatic on Claude Desktop restart."

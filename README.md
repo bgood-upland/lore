@@ -10,7 +10,7 @@ Lore works with any MCP-compatible app. The installer automatically detects and 
 - **Claude Code** — Anthropic's CLI coding agent
 - **OpenAI Codex** — OpenAI's coding agent (CLI, app, and IDE extension)
 
-## Install
+# Install
 
 **macOS:**
 
@@ -19,7 +19,7 @@ Lore works with any MCP-compatible app. The installer automatically detects and 
    ```bash
    curl -fsSL https://raw.githubusercontent.com/bgood-upland/lore/main/install.sh | bash
    ```
-3. When prompted, select which apps to configure Lore for (space to toggle, enter to confirm)
+3. When prompted, select which apps to configure Lore for
 4. When the install finishes, **quit and reopen Terminal** so the `lore` command is available
 5. **Restart the configured apps** to make the MCP server available
 
@@ -34,7 +34,11 @@ Lore works with any MCP-compatible app. The installer automatically detects and 
 4. When the install finishes, **close and reopen PowerShell** so the `lore` command is available
 5. **Restart the configured apps** to make the MCP server available
 
-## Getting Started (Manual Mode)
+# Getting Started
+
+## Manual Mode
+
+**Manual Mode** projects are meant for developers that are actively working within a repository. When using manual mode, the knowledge base used for the project is read directly from the codebase and is actively updated as you make modifications and switch between branches. It is up to you to decide the "state" of the knowledge base at any given time. 
 
 After install, open a new terminal window and register your project:
 
@@ -48,6 +52,10 @@ If the project doesn't have a `.lore/` knowledge base yet, you'll be prompted to
 
 Restart the configured apps. The server will now have access to your project's knowledge base.
 
+## Project Init Skill (Manual Mode)
+
+Lore ships with a dedicated skill for initializing the knowledge base in a new project. After scaffolding the project, start a new conversation with the agent of your choice, and ask to use the lore project-init skill help guide you and the agent through the process. This skill gives the agent instructions on how to work through the codebase, which files need to be initialized, and how to lead this process in a collaborative manner. Knowledge base creation can also be done manually, however, it is highly recommended to use an agent for many parts of this.
+
 ## For PMs (Autopilot Mode)
 
 Autopilot mode creates a read-only clone of a repo so you can access project knowledge without a local checkout:
@@ -58,13 +66,45 @@ lore cli
 > exit
 ```
 
-The clone syncs automatically every 20 minutes and on every app restart.
+The clone syncs automatically every 20 minutes and on every app restart, giving you access to the most up to date knowledge base for a project. 
 
 **Prerequisite:** Git and SSH keys must be configured on your machine. If the install script warned about SSH authentication, follow the setup guide at https://docs.github.com/en/authentication/connecting-to-github-with-ssh
 
-## Configuring Additional Apps
+# Chat Tips
 
-To add Lore to an app you installed after the initial setup, or to reconfigure:
+## Starting a New Session
+When starting a new session, it may be helpful to include something along the lines of:
+> Use lore to gather context for [project-name] before starting any work
+
+This reminds agents to use the gather_project_context tool at the start of every chat. 
+
+## Update Knowledge Base at the End of a Session
+Before ending a session, it's helpful to have the agent make the necessary knowledge base updates before moving on. You can initiate this with something like:
+> Use the update session knowledge skill to make knowledge base updates according to the changes made during this session.
+
+This tells the agent to load the "update-session-knowledge" skill (shipped with lore) to guide it through the process of making knowledge base updates at the end of a chat.
+
+## Instructions
+
+For agents to use lore most effectively, it is helpful to add a short block to your project's `CLAUDE.md`, `AGENTS.md`, or the dedicated "project instructions" field in Claude desktop. These instructions should be minimal and help the agent know about the MCP server and its basic usage so you don't need to remind it at the start of every session. The instructions block may look something like:
+```markdown
+# Session Start Protocol
+
+**Current Project:** rad-hub
+
+1. Use the lore MCP server to call `gather_project_context` with `include_overview: true` **at the beginning of every chat** — this returns the knowledge file index, graph index, skill index, and full project-instructions in one call.
+2. Use the `gather_project_context` response to inform the initial knowledge file sections, graph entities, skills, etc. to read at the start of the session. 
+3. Follow the guidelines and task routing table in project-instructions to load any additional reference files or skills relevant to the task.
+
+# After Substantive Work
+
+Run the `session-knowledge-update` skill for guided instructions on capturing
+what was changed and updating the relevant knowledge base artifacts.
+```
+
+# Configuring Additional Apps
+
+To add Lore to an app after the initial setup, or to reconfigure:
 
 ```bash
 lore configure                          # interactive — detect and select apps
@@ -83,7 +123,7 @@ lore cli
 
 Valid app names for `--app`: `claude-desktop`, `claude-code`, `codex`
 
-## Updating
+# Updating
 
 Updates are automatic. When a new version is released, the server updates itself on the next app restart. No action needed.
 
@@ -93,7 +133,7 @@ To check your current version:
 cat ~/.lore/.version
 ```
 
-## Troubleshooting
+# Troubleshooting
 
 **An app doesn't see the server**
 

@@ -36,7 +36,7 @@ Lore works with any MCP-compatible app. The installer automatically detects and 
 
 # Getting Started
 
-## Manual Mode
+## Manual Mode (Devs)
 
 **Manual Mode** projects are meant for developers that are actively working within a repository. When using manual mode, the knowledge base used for the project is read directly from the codebase and is actively updated as you make modifications and switch between branches. It is up to you to decide the "state" of the knowledge base at any given time. 
 
@@ -56,9 +56,9 @@ Restart the configured apps. The server will now have access to your project's k
 
 Lore ships with a dedicated skill for initializing the knowledge base in a new project. After scaffolding the project, start a new session with the agent of your choice, and ask to use the lore project-init skill to help guide you and the agent through the process. This skill gives the agent instructions on how to work through the codebase, which files need to be initialized, and how to lead this process in a collaborative manner. Knowledge base creation can also be done manually, however, it can be very tedious.
 
-## For PMs (Autopilot Mode)
+## Autopilot Mode (PMs + Devs)
 
-Autopilot mode creates a read-only clone of a repo so you can access project knowledge without a local checkout:
+Autopilot mode creates a read-only clone of a repo so you can access project knowledge without a local checkout. This can be helpful for PMs or developers wanting access to the knowledge base in a repo they are not actively working on. An autopilot project can be added with the following:
 
 ```
 lore cli
@@ -66,9 +66,19 @@ lore cli
 > exit
 ```
 
+You can also specify a specific branch in the repository for the project to use. This can be done by adding an option:
+
+```
+lore cli
+> add-project my-project --repo git@github.com:org/repo.git --branch [main, dev, qa, etc.]
+> exit
+```
+
 The clone syncs automatically every 20 minutes and on every app restart, giving you access to the most up to date knowledge base for a project. 
 
 **Prerequisite:** Git and SSH keys must be configured on your machine. If the install script warned about SSH authentication, follow the setup guide at https://docs.github.com/en/authentication/connecting-to-github-with-ssh
+
+**NOTE: All write/delete tools are effectively blocked when called for projects that are in autopilot mode. While agents have access to these tools, calling them will return an error. The purpose of this is to ensure the integrity of the knowledge base that is always read directly from git.**
 
 # Chat Tips
 

@@ -8,7 +8,8 @@ $ErrorActionPreference = "Stop"
 
 $Repo = "bgood-upland/lore"
 $DataDir = "$env:USERPROFILE\.lore"
-$LauncherUrl = "https://raw.githubusercontent.com/$Repo/main/launch.ps1"
+$LaunchCmdUrl = "https://raw.githubusercontent.com/$Repo/main/launch.cmd"
+$UpdatePs1Url = "https://raw.githubusercontent.com/$Repo/main/update.ps1"
 $ClaudeConfig = "$env:APPDATA\Claude\claude_desktop_config.json"
 
 Write-Host ""
@@ -35,10 +36,11 @@ foreach ($dir in @("bin", "repos", "skills", "defaults")) {
     New-Item -ItemType Directory -Path "$DataDir\$dir" -Force | Out-Null
 }
 
-# ── Step 3: Download launcher script ────────────────────────────────────────
+# ── Step 3: Download launcher scripts ───────────────────────────────────────
 
 Write-Host "Downloading launcher..."
-Invoke-WebRequest -Uri $LauncherUrl -OutFile "$DataDir\bin\launch.ps1"
+Invoke-WebRequest -Uri $LaunchCmdUrl -OutFile "$DataDir\bin\launch.cmd"
+Invoke-WebRequest -Uri $UpdatePs1Url -OutFile "$DataDir\bin\update.ps1"
 
 # ── Step 4: Download latest binary ──────────────────────────────────────────
 
@@ -90,10 +92,13 @@ if (-not (Test-Path "$DataDir\config.toml")) {
 }
 
 # ── Step 7: Patch Claude Desktop config ─────────────────────────────────────
+# Uses launch.cmd as the entry point — batch files pass stdio cleanly to the
+# binary, unlike PowerShell which interferes with MCP's stdio transport.
+# Writes UTF-8 without BOM — Claude Desktop's JSON parser rejects the BOM.
 
 Write-Host "Configuring Claude Desktop..."
 
-$LauncherPath = "$DataDir\bin\launch.ps1"
+$LauncherPath = "$DataDir\bin\launch.cmd"
 
 if (Test-Path $ClaudeConfig) {
     try {
@@ -114,8 +119,8 @@ if (-not $config.PSObject.Properties["mcpServers"]) {
 
 # Add/update lore entry — leaves all other mcpServers entries untouched
 $loreEntry = [PSCustomObject]@{
-    command = "powershell"
-    args    = @("-ExecutionPolicy", "Bypass", "-File", $LauncherPath)
+    command = $LauncherPath
+    args    = @()
     env     = [PSCustomObject]@{ RUST_BACKTRACE = "1" }
 }
 
@@ -125,7 +130,9 @@ if ($config.mcpServers.PSObject.Properties["lore"]) {
     $config.mcpServers | Add-Member -MemberType NoteProperty -Name "lore" -Value $loreEntry
 }
 
-$config | ConvertTo-Json -Depth 10 | Set-Content $ClaudeConfig -Encoding UTF8
+# Write as UTF-8 without BOM
+$json = $config | ConvertTo-Json -Depth 10
+[System.IO.File]::WriteAllText($ClaudeConfig, $json)
 Write-Host "  Updated: $ClaudeConfig"
 
 # ── Step 8: Add to PATH ─────────────────────────────────────────────────────
@@ -173,7 +180,7 @@ Write-Host "============================================"
 Write-Host ""
 Write-Host "  Data directory:  $DataDir\"
 Write-Host "  Binary:          $DataDir\bin\lore.exe"
-Write-Host "  Launcher:        $DataDir\bin\launch.ps1"
+Write-Host "  Launcher:        $DataDir\bin\launch.cmd"
 Write-Host "  Version:         $LatestTag"
 Write-Host ""
 Write-Host "  Next steps:"

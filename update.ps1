@@ -1,6 +1,6 @@
-# Lore launcher — called by Claude Desktop on every start.
-# Checks for updates, downloads new binary if available, then runs the server.
-# Network failures are non-fatal — the server must always start.
+# Lore update checker — called by launch.cmd before the binary starts.
+# Checks for updates, downloads new binary if available, then exits.
+# All output is suppressed by launch.cmd — this script must not write to stdout.
 
 $DataDir = "$env:USERPROFILE\.lore"
 $Bin = "$DataDir\bin\lore.exe"
@@ -26,6 +26,7 @@ try {
     $Latest = $ReleaseData.tag_name
 } catch {
     # Network failure — continue with existing binary
+    exit 0
 }
 
 # ── Download new version if needed ──────────────────────────────────────────
@@ -50,15 +51,4 @@ if ($Latest -and (($Latest -ne $Current) -or (-not (Test-Path $Bin)))) {
             Remove-Item -Path $TmpBin -ErrorAction SilentlyContinue
         }
     }
-}
-
-# ── Start the server ────────────────────────────────────────────────────────
-
-if (Test-Path $Bin) {
-    & $Bin @args
-    exit $LASTEXITCODE
-} else {
-    Write-Error "No lore binary found at $Bin"
-    Write-Error "Run the install script: irm https://raw.githubusercontent.com/$Repo/main/install.ps1 | iex"
-    exit 1
 }

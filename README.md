@@ -54,7 +54,7 @@ Restart the configured apps. The server will now have access to your project's k
 
 ## Project Init Skill (Manual Mode)
 
-Lore ships with a dedicated skill for initializing the knowledge base in a new project. After scaffolding the project, start a new conversation with the agent of your choice, and ask to use the lore project-init skill help guide you and the agent through the process. This skill gives the agent instructions on how to work through the codebase, which files need to be initialized, and how to lead this process in a collaborative manner. Knowledge base creation can also be done manually, however, it is highly recommended to use an agent for many parts of this.
+Lore ships with a dedicated skill for initializing the knowledge base in a new project. After scaffolding the project, start a new session with the agent of your choice, and ask to use the lore project-init skill to help guide you and the agent through the process. This skill gives the agent instructions on how to work through the codebase, which files need to be initialized, and how to lead this process in a collaborative manner. Knowledge base creation can also be done manually, however, it can be very tedious.
 
 ## For PMs (Autopilot Mode)
 

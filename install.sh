@@ -5,13 +5,12 @@
 # Idempotent — safe to re-run. Does not clobber existing config or other
 # MCP servers in the Claude Desktop config.
 #
-# Dependencies: curl, osascript, plutil (all ship with macOS)
+# Dependencies: curl, osascript (both ship with macOS)
 set -euo pipefail
 
 REPO="bgood-upland/lore"
 DATA_DIR="$HOME/.lore"
 LAUNCHER_URL="https://raw.githubusercontent.com/$REPO/main/launch.sh"
-CLAUDE_CONFIG="$HOME/Library/Application Support/Claude/claude_desktop_config.json"
 
 echo ""
 echo "Installing Lore..."
@@ -128,34 +127,22 @@ EOF
     echo "Created config.toml"
 fi
 
-# ── Step 7: Patch Claude Desktop config ─────────────────────────────────────
-# Adds the "lore" MCP server entry without clobbering other servers.
-# Uses plutil (ships with macOS) for JSON manipulation — no Python dependency.
+# ── Step 7: Configure MCP client apps ───────────────────────────────────────
+# The binary handles detection and config patching for all supported apps
+# (Claude Desktop, Claude Code, OpenAI Codex). Interactive selection via TUI.
+#
+# The < /dev/tty redirect is required because when this script is piped from
+# curl (curl | bash), stdin is the pipe, not the terminal. /dev/tty gives
+# dialoguer direct access to the terminal for the interactive prompt.
 
-echo "Configuring Claude Desktop..."
-
-LAUNCHER_PATH="$DATA_DIR/bin/launch.sh"
-
-# Create the config file if it doesn't exist
-if [ ! -f "$CLAUDE_CONFIG" ]; then
-    mkdir -p "$(dirname "$CLAUDE_CONFIG")"
-    echo '{}' > "$CLAUDE_CONFIG"
+echo ""
+if "$DATA_DIR/bin/lore" configure --interactive < /dev/tty 2>&1; then
+    : # success
+else
+    echo ""
+    echo "  Automatic app configuration was skipped."
+    echo "  Run 'lore configure' after install to set up MCP clients."
 fi
-
-# Ensure mcpServers key exists (no-op if already present)
-plutil -insert mcpServers -json '{}' "$CLAUDE_CONFIG" 2>/dev/null || true
-
-# Remove existing lore entry if present (so -insert doesn't fail on duplicate)
-plutil -remove mcpServers.lore "$CLAUDE_CONFIG" 2>/dev/null || true
-
-# Add lore entry
-plutil -insert mcpServers.lore -json "{
-  \"command\": \"$LAUNCHER_PATH\",
-  \"args\": [],
-  \"env\": {\"RUST_BACKTRACE\": \"1\"}
-}" "$CLAUDE_CONFIG"
-
-echo "  Updated: $CLAUDE_CONFIG"
 
 # ── Step 8: Add to PATH ─────────────────────────────────────────────────────
 # Adds ~/.lore/bin to PATH so users can run `lore cli` from any terminal.
@@ -207,7 +194,7 @@ echo "  Launcher:        $DATA_DIR/bin/launch.sh"
 echo "  Version:         $LATEST_TAG"
 echo ""
 echo "  Next steps:"
-echo "    1. Restart Claude Desktop"
+echo "    1. Restart any configured apps (Claude Desktop, etc.)"
 if [ -n "$SHELL_RC" ]; then
     echo "    2. Open a new terminal window (or run: source $SHELL_RC)"
 else
@@ -217,5 +204,6 @@ echo "    3. Add a project:"
 echo "       lore cli"
 echo "       > add-project my-project --root /path/to/repo"
 echo ""
-echo "  Updates are automatic on Claude Desktop restart."
+echo "  To configure additional apps later:  lore configure"
+echo "  Updates are automatic on app restart."
 echo ""

@@ -2,7 +2,7 @@
 # Usage: irm https://raw.githubusercontent.com/bgood-upland/lore/main/install.ps1 | iex
 #
 # Idempotent — safe to re-run. Does not clobber existing config or other
-# MCP servers in the Claude Desktop config.
+# MCP servers in any app's config.
 
 $ErrorActionPreference = "Stop"
 
@@ -10,7 +10,6 @@ $Repo = "bgood-upland/lore"
 $DataDir = "$env:USERPROFILE\.lore"
 $LaunchCmdUrl = "https://raw.githubusercontent.com/$Repo/main/launch.cmd"
 $UpdatePs1Url = "https://raw.githubusercontent.com/$Repo/main/update.ps1"
-$ClaudeConfig = "$env:APPDATA\Claude\claude_desktop_config.json"
 
 Write-Host ""
 Write-Host "Installing Lore..."
@@ -91,49 +90,20 @@ if (-not (Test-Path "$DataDir\config.toml")) {
     Write-Host "Created config.toml"
 }
 
-# ── Step 7: Patch Claude Desktop config ─────────────────────────────────────
-# Uses launch.cmd as the entry point — batch files pass stdio cleanly to the
-# binary, unlike PowerShell which interferes with MCP's stdio transport.
-# Writes UTF-8 without BOM — Claude Desktop's JSON parser rejects the BOM.
+# ── Step 7: Configure MCP client apps ───────────────────────────────────────
+# The binary handles detection and config patching for all supported apps
+# (Claude Desktop, Claude Code, OpenAI Codex). Interactive selection via TUI.
 
-Write-Host "Configuring Claude Desktop..."
-
-$LauncherPath = "$DataDir\bin\launch.cmd"
-
-if (Test-Path $ClaudeConfig) {
-    try {
-        $config = Get-Content $ClaudeConfig -Raw | ConvertFrom-Json
-    } catch {
-        $config = [PSCustomObject]@{}
-    }
-} else {
-    $configDir = Split-Path $ClaudeConfig -Parent
-    New-Item -ItemType Directory -Path $configDir -Force | Out-Null
-    $config = [PSCustomObject]@{}
+Write-Host ""
+Write-Host "Configuring MCP client apps..."
+Write-Host ""
+try {
+    & "$DataDir\bin\lore.exe" configure --interactive
+} catch {
+    Write-Host ""
+    Write-Host "  Automatic app configuration was skipped."
+    Write-Host "  Run 'lore configure' after install to set up MCP clients."
 }
-
-# Ensure mcpServers object exists
-if (-not $config.PSObject.Properties["mcpServers"]) {
-    $config | Add-Member -MemberType NoteProperty -Name "mcpServers" -Value ([PSCustomObject]@{})
-}
-
-# Add/update lore entry — leaves all other mcpServers entries untouched
-$loreEntry = [PSCustomObject]@{
-    command = $LauncherPath
-    args    = @()
-    env     = [PSCustomObject]@{ RUST_BACKTRACE = "1" }
-}
-
-if ($config.mcpServers.PSObject.Properties["lore"]) {
-    $config.mcpServers.lore = $loreEntry
-} else {
-    $config.mcpServers | Add-Member -MemberType NoteProperty -Name "lore" -Value $loreEntry
-}
-
-# Write as UTF-8 without BOM
-$json = $config | ConvertTo-Json -Depth 10
-[System.IO.File]::WriteAllText($ClaudeConfig, $json)
-Write-Host "  Updated: $ClaudeConfig"
 
 # ── Step 8: Add to PATH ─────────────────────────────────────────────────────
 # Adds ~/.lore/bin to the user's PATH so they can run `lore cli` from any terminal.
@@ -184,11 +154,12 @@ Write-Host "  Launcher:        $DataDir\bin\launch.cmd"
 Write-Host "  Version:         $LatestTag"
 Write-Host ""
 Write-Host "  Next steps:"
-Write-Host "    1. Restart Claude Desktop"
+Write-Host "    1. Restart any configured apps (Claude Desktop, etc.)"
 Write-Host "    2. Open a new terminal window"
 Write-Host "    3. Add a project:"
 Write-Host "       lore cli"
 Write-Host "       > add-project my-project --root C:\path\to\repo"
 Write-Host ""
-Write-Host "  Updates are automatic on Claude Desktop restart."
+Write-Host "  To configure additional apps later:  lore configure"
+Write-Host "  Updates are automatic on app restart."
 Write-Host ""

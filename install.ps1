@@ -46,7 +46,7 @@ Write-Host "Fetching latest release..."
 $ReleaseData = Invoke-RestMethod -Uri "https://api.github.com/repos/$Repo/releases/latest"
 $LatestTag = $ReleaseData.tag_name
 
-$AssetName = "lore-x86_64-pc-windows-msvc.exe"
+$AssetName = "lore-x86_64-pc-windows-gnu.exe"
 $Asset = $ReleaseData.assets | Where-Object { $_.name -eq $AssetName } | Select-Object -First 1
 
 if (-not $Asset) {

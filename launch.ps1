@@ -31,7 +31,7 @@ try {
 # ── Download new version if needed ──────────────────────────────────────────
 
 if ($Latest -and (($Latest -ne $Current) -or (-not (Test-Path $Bin)))) {
-    $AssetName = "lore-x86_64-pc-windows-msvc.exe"
+    $AssetName = "lore-x86_64-pc-windows-gnu.exe"
     $Asset = $ReleaseData.assets | Where-Object { $_.name -eq $AssetName } | Select-Object -First 1
 
     if ($Asset) {
